@@ -1,0 +1,32 @@
+[
+  {
+    "video_path": "videos/elderly_001.mp4",
+    "reference_text": "今天天气很好，我想去公园散步",
+    "metadata": {
+      "speaker": "老人 A",
+      "age": 75,
+      "gender": "男",
+      "duration": 5.2
+    }
+  },
+  {
+    "video_path": "videos/elderly_002.mp4",
+    "reference_text": "我每天早上都会打太极拳，已经坚持了十年",
+    "metadata": {
+      "speaker": "老人 B",
+      "age": 68,
+      "gender": "女",
+      "duration": 6.8
+    }
+  },
+  {
+    "video_path": "videos/elderly_003.mp4",
+    "reference_text": "孩子们都很忙，我自己在家养了一些花",
+    "metadata": {
+      "speaker": "老人 C",
+      "age": 82,
+      "gender": "女",
+      "duration": 4.5
+    }
+  }
+]
