@@ -78,23 +78,27 @@ class SimpleEvaluator:
         print(f"🎯 开始评测：{self.model.model_name}")
         print("="*60)
         
-        # 获取数据
-        samples = data_loader.get_samples()
-        video_paths = data_loader.get_video_paths()
-        references = data_loader.get_references()
+        # 不预加载全部数据，只获取数量
+        num_samples = len(data_loader)
         
-        print(f"\n📊 评测样本数：{len(samples)}")
+        print(f"\n📊 评测样本数：{num_samples}")
         print(f"📏 评测指标：{', '.join([m.name for m in self.metrics])}")
         
-        # ========== 步骤 1: 模型推理 ==========
+        # ========== 步骤 1: 模型推理（逐个加载，不预加载全部） ==========
         print("\n" + "-"*60)
         print("📍 步骤 1/2: 执行模型推理")
         print("-"*60)
         
         predictions = []
         inference_results = []
+        num_samples = len(data_loader)
         
-        for video_path in tqdm(video_paths, desc="推理中"):
+        # 逐个迭代，不预加载所有数据
+        for idx in tqdm(range(num_samples), desc="推理中"):
+            # 每次只获取一个样本
+            sample = data_loader.samples[idx]
+            video_path = sample.video_path
+            
             try:
                 result = self.model.infer(video_path)
                 predictions.append(result.predicted_text)
@@ -108,6 +112,10 @@ class SimpleEvaluator:
                 print(f"\n  ❌ 推理失败 {Path(video_path).name}: {e}")
                 predictions.append("")
                 inference_results.append(None)
+        
+        # 获取全部样本和参考文本（用于后续评测）
+        samples = data_loader.get_samples()
+        references = data_loader.get_references()
         
         # ========== 步骤 2: 计算指标 ==========
         print("\n" + "-"*60)

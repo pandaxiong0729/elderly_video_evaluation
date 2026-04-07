@@ -56,5 +56,8 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Windows special device file
+nul
+
 # Keep example data
 !data/evaluation_data.json

@@ -1,0 +1,113 @@
+================================================================================
+⚡ 命令行参数快速参考
+================================================================================
+
+1. clips_tools.py - 视频和字幕切片
+--------------------------------------------------------------------------------
+    
+    python clips_tools.py [参数]
+    
+    参数说明：
+      --clip_duration         切片时长（秒），默认: 30
+      --video_dir             原始视频目录
+      --srt_dir               原始字幕目录
+      --output_video_dir      切割后视频输出目录
+      --output_srt_dir        切割后字幕输出目录
+    
+    示例：
+      python clips_tools.py                                    # 默认配置
+      python clips_tools.py --clip_duration 60                 # 60秒切片
+      python clips_tools.py --clip_duration 45 --video_dir /path/to/videos  # 自定义路径和时长
+
+
+2. analyze_results.py - 评测结果分析（支持多指标）
+--------------------------------------------------------------------------------
+
+    python analyze_results.py [参数]
+    
+    参数说明：
+      --csv                  评测结果 CSV 文件路径
+      --output_dir           输出目录
+      --threshold            分数阈值（0-1）
+      --metric               指标名称（如 'BLEU-1', 'BLEU-2', 'BLEU-4', 'CER'），默认自动查找 BLEU-1
+    
+    示例：
+      python analyze_results.py                              # 默认配置（BLEU-1, 阈值 0.5）
+      python analyze_results.py --threshold 0.3              # 阈值 0.3
+      python analyze_results.py --metric 'BLEU-2' --threshold 0.4  # 分析 BLEU-2
+      python analyze_results.py --metric 'CER' --threshold 0.15    # 分析 CER（越低越好）
+      python analyze_results.py --metric 'BLEU-4' --csv /path/to/results.csv  # 自定义指标和输入
+
+
+3. re_evaluate.py - 重新评测
+--------------------------------------------------------------------------------
+
+    python re_evaluate.py [参数]
+    
+    参数说明：
+      --csv                  输入 CSV 文件路径
+      --profile              评测指标组合
+      --output_dir            输出目录
+    
+    可用的 profile：
+      bleu1_only            仅 BLEU-1（快速）
+      bleu_family            BLEU-1,2,3,4（完整）
+      bleu_cer               BLEU-1 + CER（综合）
+      comprehensive          所有指标（详细）
+    
+    示例：
+      python re_evaluate.py --profile bleu1_only              # 快速评估
+      python re_evaluate.py --profile comprehensive           # 详细评估
+      python re_evaluate.py --profile bleu_cer --csv /path/to/results.csv
+
+
+================================================================================
+🎯 常用命令组合
+================================================================================
+
+快速切片和评测：
+    python clips_tools.py --clip_duration 30
+    python run_evaluation.py
+    python analyze_results.py
+
+自定义切片时长：
+    python clips_tools.py --clip_duration 60
+    python run_evaluation.py
+    python analyze_results.py --threshold 0.4
+
+对比不同阈值：
+    python analyze_results.py --threshold 0.3
+    python analyze_results.py --threshold 0.5
+    python analyze_results.py --threshold 0.7
+
+综合评估：
+    python re_evaluate.py --profile comprehensive
+    python analyze_results.py --threshold 0.5
+
+================================================================================
+📋 配置优先级
+================================================================================
+
+命令行参数 > 代码默认值 > config.py 配置
+
+1. 如果通过命令行传递参数，使用命令行参数
+2. 如果没有命令行参数，使用 config.py 中的值
+3. config.py 中也没有，使用代码中的硬编码默认值
+
+================================================================================
+💡 使用技巧
+--------------------------------------------------------------------------------
+
+1. 查看帮助信息：
+      python clips_tools.py --help
+      python analyze_results.py --help
+      python re_evaluate.py --help
+
+2. 组合多个参数：
+      python clips_tools.py --clip_duration 60 --video_dir /path --output_video_dir /output
+
+3. 使用配置文件默认值：
+      python clips_tools.py  # 不传任何参数，使用 config.py 配置
+      python analyze_results.py  # 不传任何参数，使用 config.py 配置
+
+================================================================================

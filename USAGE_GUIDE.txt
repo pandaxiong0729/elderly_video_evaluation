@@ -1,0 +1,239 @@
+================================================================================
+📋 代码重构完成 - 使用指南
+================================================================================
+
+🎯 核心改进
+-----------
+✅ 创建了统一的配置管理中心：config.py
+✅ 优化了 bleu_metrics.py - 简化代码，移除重复定义
+✅ 优化了 analyze_results.py - 使用配置文件默认值
+✅ 优化了 clips_tools.py - 使用配置常量
+✅ 新建了 re_evaluate.py - 支持不同评测指标组合
+
+
+================================================================================
+📁 文件结构变化
+================================================================================
+
+config.py (新建)
+├── 📁 路径配置
+│   ├── ORIGINAL_VIDEO_DIR
+│   ├── CLIP_VIDEO_DIR
+│   ├── ORIGINAL_SRT_DIR
+│   ├── CLIP_SRT_DIR
+│   ├── RESULTS_CSV
+│   └── ANALYSIS_DIR
+├── 🎬 视频切片配置
+│   ├── CLIP_DURATION = 30
+│   └── VIDEO_FORMATS = ["mp4", "avi", "mov", "mkv"]
+├── 📊 评测配置
+│   ├── BLEU1_LOW_SCORE_THRESHOLD = 0.5
+│   ├── BLEU1_FILTER_THRESHOLD = 0.1
+│   └── USE_BLEU1, USE_BLEU4, USE_CER
+├── 🔤 文本预处理
+│   ├── DIGIT_TO_CHINESE
+│   └── HALLUCINATION_PATTERNS
+├── 🤖 模型配置
+│   ├── DEFAULT_MODEL_TYPE
+│   └── QWEN_OMNI_CONFIG
+└── 📋 分析配置
+    ├── LOW_SCORE_DISPLAY_COUNT = 10
+    └── CSV_ENCODING = "utf-8-sig"
+
+
+================================================================================
+🔧 修改配置的方法
+================================================================================
+
+场景1：修改视频切片时长
+------
+方式1：通过命令行参数（推荐）
+    python clips_tools.py --clip_duration 60
+
+方式2：在 config.py 中修改
+    CLIP_DURATION = 60  # 改为 60 秒
+
+然后运行：
+    python clips_tools.py
+    # 自动使用新的 60 秒配置
+
+
+场景2：修改低分阈值进行分析
+------
+方式1：通过命令行参数（推荐）
+    python analyze_results.py --threshold 0.3
+
+方式2：在 config.py 中修改
+    BLEU1_LOW_SCORE_THRESHOLD = 0.3  # 改为 0.3
+
+然后运行：
+    python analyze_results.py
+    # 低于 0.3 的视频会被标记为"低分"
+
+
+场景3：修改路径（如果数据位置改变）
+------
+方式1：通过命令行参数
+    python clips_tools.py --video_dir 新路径 --output_video_dir 新路径
+
+方式2：在 config.py 中修改
+    ORIGINAL_VIDEO_DIR = "新路径"
+    CLIP_VIDEO_DIR = "新路径"
+
+然后运行相关脚本，自动使用新路径
+
+
+场景4：切换不同的评测指标组合
+------
+运行（无需修改任何代码）：
+    python re_evaluate.py --profile bleu1_only      # 仅 BLEU-1
+    python re_evaluate.py --profile bleu_family     # BLEU-1,2,3,4
+    python re_evaluate.py --profile bleu_cer        # BLEU-1 + CER
+    python re_evaluate.py --profile comprehensive   # 所有指标
+
+
+================================================================================
+📊 新的脚本使用方式
+================================================================================
+
+1. 视频切片工具 (clips_tools.py)
+   -------
+   python clips_tools.py
+   
+   特点：
+   - 自动使用 config.py 中的路径和时长
+   - 基于 SRT 时间戳精确对齐视频和字幕
+   - 无需手动传递任何参数
+
+   
+
+2. 结果分析工具 (analyze_results.py)
+   -------
+   python analyze_results.py
+   
+   特点：
+   - 自动使用 config.py 中的 CSV 路径和阈值
+   - 分离低分和高分视频到两个 CSV 文件
+   - 重新计算高分视频的平均 BLEU-1
+
+   输出：
+   ├── low_score_videos_below_0.5.csv
+   └── high_score_videos_above_0.5.csv
+
+
+3. 重新评测工具 (re_evaluate.py)
+   -------
+   python re_evaluate.py --profile bleu1_only
+   
+   可用的指标组合：
+   - bleu1_only:      仅 BLEU-1（快速评估）
+   - bleu_family:     BLEU-1, BLEU-2, BLEU-3, BLEU-4
+   - bleu_cer:        BLEU-1 + CER（综合评估）
+   - comprehensive:   所有指标（详细评估）
+
+   输出：
+   ├── re_evaluated_bleu1_only.csv
+   ├── re_evaluated_bleu_family.csv
+   ├── re_evaluated_bleu_cer.csv
+   └── re_evaluated_comprehensive.csv
+
+
+================================================================================
+💡 关键改进点
+================================================================================
+
+✅ 解耦性改进
+   - 配置从代码中分离
+   - 单点修改 config.py，所有文件自动生效
+   - 避免配置散落在各个文件中
+
+✅ 代码简化
+   - 删除了重复定义的常量
+   - 简化了 convert_digits_to_chinese() 函数
+   - 移除了冗余的配置注释
+
+✅ 快速切换
+   - 通过命令行参数快速切换评测指标
+   - 无需修改源代码
+   - 支持快速评估和详细评估
+
+✅ 易于扩展
+   - 新增评测指标只需在 config.py 中添加
+   - 新增模型配置只需在 config.py 中添加
+   - 新增 Metric Profile 只需在 re_evaluate.py 中添加
+
+
+================================================================================
+⚠️ 重要提示
+================================================================================
+
+1. 所有 Python 脚本都会自动导入 config.py 中的配置
+   - 确保 config.py 在项目根目录
+   - 确保 config.py 的路径是正确的
+
+2. 修改 config.py 后无需重新启动任何服务
+   - 下次运行脚本时自动生效
+
+3. 如需回退修改
+   - config.py 中的所有参数都有默认值
+   - 可以备份一份原始的 config.py
+
+4. 关于数字转换
+   - 所有 BLEU 指标自动进行数字转汉字转换
+   - "2023年" 自动转换为 "二零二三年"
+   - 保证评测的一致性
+
+
+================================================================================
+🚀 常用命令总结
+================================================================================
+
+快速评估（仅 BLEU-1）：
+    python re_evaluate.py --profile bleu1_only
+
+详细评估（所有指标）：
+    python re_evaluate.py --profile comprehensive
+
+切割视频和字幕：
+    python clips_tools.py
+
+分析评测结果：
+    python analyze_results.py
+
+清理低分数文本：
+    python clean_old_clips.py
+
+
+================================================================================
+📞 问题排查
+================================================================================
+
+问题：ModuleNotFoundError: No module named 'config'
+解答：
+    - 确保 config.py 在项目根目录（与脚本同目录）
+    - 检查 Python 工作目录是否正确
+
+问题：BLEU 分数都是 0
+解答：
+    - 检查 config.py 中的 HALLUCINATION_PATTERNS 是否配置正确
+    - 检查参考文本和预测文本是否正确加载
+
+问题：视频切片时间不对
+解答：
+    - 检查 config.py 中的 CLIP_DURATION 设置
+    - 检查原始 SRT 文件的时间戳是否正确
+
+
+================================================================================
+✅ 检查清单
+================================================================================
+
+[ ] config.py 已创建并放在项目根目录
+[ ] 所有脚本都能正确导入 config.py
+[ ] clips_tools.py 使用了 CLIP_DURATION
+[ ] analyze_results.py 使用了配置默认值
+[ ] bleu_metrics.py 简化代码并导入配置
+[ ] re_evaluate.py 支持不同评测指标组合
+[ ] 所有必要的依赖包已安装（pandas, torch, 等）
+
+================================================================================

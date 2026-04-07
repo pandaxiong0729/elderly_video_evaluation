@@ -7,6 +7,48 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple
 from collections import Counter
 import math
+import re
+from config import HALLUCINATION_PATTERNS, DIGIT_TO_CHINESE
+
+
+def convert_digits_to_chinese(text: str) -> str:
+    """
+    将阿拉伯数字转换为对应的中文数字
+    例如: "2023年" -> "二零二三年"
+    
+    Args:
+        text: 输入文本
+        
+    Returns:
+        str: 转换后的文本
+    """
+    return ''.join(DIGIT_TO_CHINESE.get(char, char) for char in text)
+
+
+def clean_prediction_text(text: str) -> str:
+    """
+    清理预测文本，去除模型幻觉和无关内容
+    
+    Args:
+        text: 原始预测文本
+        
+    Returns:
+        str: 清理后的文本
+    """
+    # 去除空白字符
+    text = text.strip().replace("\n", "").replace("\r", "").replace("\t", "")
+    
+    # 移除模型幻觉文本
+    for pattern in HALLUCINATION_PATTERNS:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+    
+    # 清理多余空格
+    text = re.sub(r"\s+", "", text)  # 中文文本通常无空格
+    
+    # 转换阿拉伯数字为中文数字
+    text = convert_digits_to_chinese(text)
+    
+    return text.strip()
 
 
 class BaseMetric(ABC):
@@ -43,11 +85,28 @@ class BaseMetric(ABC):
             scores.append(score)
         return scores
     
-    def average(self, scores: List[float]) -> float:
-        """计算平均分"""
+    def average(self, scores: List[float], min_threshold: float = 0.1) -> float:
+        """
+        计算平均分，过滤掉低于阈值的分数
+        
+        Args:
+            scores: 分数列表
+            min_threshold: 最小阈值（低于此值的分数不计入平均）
+            
+        Returns:
+            float: 平均分（已过滤）
+        """
         if not scores:
             return 0.0
-        return sum(scores) / len(scores)
+        
+        # 过滤掉低分
+        filtered_scores = [s for s in scores if s >= min_threshold]
+        
+        if not filtered_scores:
+            # 如果全部低于阈值，返回原始平均分并输出警告
+            return sum(scores) / len(scores)
+        
+        return sum(filtered_scores) / len(filtered_scores)
     
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name})"
@@ -117,7 +176,8 @@ class BLEU1(BaseMetric):
         Returns:
             List[str]: 分词结果
         """
-        text = text.strip().lower()
+        # 清理文本：去除空白字符和模型幻觉
+        text = clean_prediction_text(text).lower()
         
         # 简单判断：如果包含中文字符，按字符分割
         if any('\u4e00' <= char <= '\u9fff' for char in text):
@@ -187,7 +247,8 @@ class BLEUN(BaseMetric):
     
     def _tokenize(self, text: str) -> List[str]:
         """文本分词"""
-        text = text.strip().lower()
+        # 清理文本：去除空白字符和模型幻觉
+        text = clean_prediction_text(text).lower()
         if any('\u4e00' <= char <= '\u9fff' for char in text):
             return list(text.replace(" ", ""))
         else:
@@ -226,8 +287,12 @@ class CER(BaseMetric):
         Returns:
             float: CER (越小越好)
         """
-        pred_chars = list(predicted.strip())
-        ref_chars = list(reference.strip())
+        # 统一预处理：去除空格、换行、模型幻觉等
+        pred_clean = clean_prediction_text(predicted).replace(" ", "")
+        ref_clean = clean_prediction_text(reference).replace(" ", "")
+        
+        pred_chars = list(pred_clean)
+        ref_chars = list(ref_clean)
         
         # 使用动态规划计算编辑距离
         edits = self._levenshtein_distance(pred_chars, ref_chars)
